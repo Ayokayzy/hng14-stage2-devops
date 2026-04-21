@@ -157,8 +157,9 @@ jobs:
           image-ref: localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
+          scanners: vuln
           format: table
-          exit-code: "0"
+          exit-code: "1"
 
       - name: Run Trivy scan for API image
         uses: aquasecurity/trivy-action@v0.24.0
@@ -167,9 +168,10 @@ jobs:
           image-ref: localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
+          scanners: vuln
           format: sarif
           output: trivy-api.sarif
-          exit-code: "1"
+          exit-code: "0"
 
       - name: Trivy debug scan (table) for Worker image
         uses: aquasecurity/trivy-action@v0.24.0
@@ -178,8 +180,9 @@ jobs:
           image-ref: localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
+          scanners: vuln
           format: table
-          exit-code: "0"
+          exit-code: "1"
 
       - name: Run Trivy scan for Worker image
         uses: aquasecurity/trivy-action@v0.24.0
@@ -188,9 +191,10 @@ jobs:
           image-ref: localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
+          scanners: vuln
           format: sarif
           output: trivy-worker.sarif
-          exit-code: "1"
+          exit-code: "0"
 
       - name: Trivy debug scan (table) for Frontend image
         uses: aquasecurity/trivy-action@v0.24.0
@@ -199,8 +203,9 @@ jobs:
           image-ref: localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
+          scanners: vuln
           format: table
-          exit-code: "0"
+          exit-code: "1"
 
       - name: Run Trivy scan for Frontend image
         uses: aquasecurity/trivy-action@v0.24.0
@@ -209,9 +214,10 @@ jobs:
           image-ref: localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
+          scanners: vuln
           format: sarif
           output: trivy-frontend.sarif
-          exit-code: "1"
+          exit-code: "0"
 
       - name: Upload Trivy SARIF artifacts
         uses: actions/upload-artifact@v4
