@@ -93,16 +93,12 @@ jobs:
 
       - name: Build and tag images
         uses: docker/build-push-action@v6
-        env:
-          REGISTRY: localhost:5000
-          NAMESPACE: hng14-stage2-devops
-          TAG_SHA: ${{ github.sha }}
         with:
           context: ./api
           tags: |
-            localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
-            localhost:5000/hng14-stage2-devops/api:latest
-          push: true
+            127.0.0.1:5000/hng14-stage2-devops/api:${{ github.sha }}
+            127.0.0.1:5000/hng14-stage2-devops/api:latest
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -111,9 +107,9 @@ jobs:
         with:
           context: ./worker
           tags: |
-            localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
-            localhost:5000/hng14-stage2-devops/worker:latest
-          push: true
+            127.0.0.1:5000/hng14-stage2-devops/worker:${{ github.sha }}
+            127.0.0.1:5000/hng14-stage2-devops/worker:latest
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -122,15 +118,28 @@ jobs:
         with:
           context: ./frontend
           tags: |
-            localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
-            localhost:5000/hng14-stage2-devops/frontend:latest
-          push: true
+            127.0.0.1:5000/hng14-stage2-devops/frontend:${{ github.sha }}
+            127.0.0.1:5000/hng14-stage2-devops/frontend:latest
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Push images to local registry service container
+        env:
+          REGISTRY: 127.0.0.1:5000
+          NAMESPACE: hng14-stage2-devops
+          TAG_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for svc in api worker frontend; do
+            image="${REGISTRY}/${NAMESPACE}/${svc}"
+            docker push "${image}:${TAG_SHA}"
+            docker push "${image}:latest"
+          done
+
       - name: Export image archives for downstream jobs
         env:
-          REGISTRY: localhost:5000
+          REGISTRY: 127.0.0.1:5000
           NAMESPACE: hng14-stage2-devops
           TAG_SHA: ${{ github.sha }}
         run: |
@@ -170,7 +179,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: image
-          image-ref: localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
+          image-ref: 127.0.0.1:5000/hng14-stage2-devops/api:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
           scanners: vuln
@@ -181,7 +190,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: image
-          image-ref: localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
+          image-ref: 127.0.0.1:5000/hng14-stage2-devops/api:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
           scanners: vuln
@@ -193,7 +202,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: image
-          image-ref: localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
+          image-ref: 127.0.0.1:5000/hng14-stage2-devops/worker:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
           scanners: vuln
@@ -204,7 +213,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: image
-          image-ref: localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
+          image-ref: 127.0.0.1:5000/hng14-stage2-devops/worker:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
           scanners: vuln
@@ -216,7 +225,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: image
-          image-ref: localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
+          image-ref: 127.0.0.1:5000/hng14-stage2-devops/frontend:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
           scanners: vuln
@@ -227,7 +236,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: image
-          image-ref: localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
+          image-ref: 127.0.0.1:5000/hng14-stage2-devops/frontend:${{ github.sha }}
           severity: CRITICAL
           ignore-unfixed: true
           scanners: vuln

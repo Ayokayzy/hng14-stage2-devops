@@ -185,3 +185,29 @@ The deploy job expects the following repository-level settings:
   Runtime API base URL injected into deployed frontend container (for example: `https://api.example.com`).
 
 If either value is missing, the deploy stage exits early with a clear error message.
+
+### How to set GitHub variable and secret
+
+#### Set a repository variable (`IMAGE_BASE`)
+1. Open your repo on GitHub.
+2. Go to **Settings**.
+3. In the left sidebar, go to **Secrets and variables** -> **Actions**.
+4. Open the **Variables** tab.
+5. Click **New repository variable**.
+6. Set:
+   - **Name:** `IMAGE_BASE`
+   - **Value:** e.g. `ghcr.io/ayokayzy/hng14-stage2-devops/frontend`
+7. Save.
+
+#### Set a repository secret (`DEPLOY_API_URL`)
+1. In the same area: **Settings** -> **Secrets and variables** -> **Actions**.
+2. Open the **Secrets** tab.
+3. Click **New repository secret**.
+4. Set:
+   - **Name:** `DEPLOY_API_URL`
+   - **Secret:** e.g. `https://api.example.com`
+5. Save.
+
+#### How the workflow reads them
+- Variable: `${{ vars.IMAGE_BASE }}`
+- Secret: `${{ secrets.DEPLOY_API_URL }}`
