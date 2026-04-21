@@ -303,6 +303,7 @@ jobs:
             echo "DEPLOY_API_URL secret is required."
             exit 1
           fi
+          IMAGE_BASE="${IMAGE_BASE/localhost:5000/127.0.0.1:5000}"
           docker network create deploy-net >/dev/null 2>&1 || true
           docker rm -f frontend-old frontend-new >/dev/null 2>&1 || true
 
