@@ -1,6 +1,7 @@
 name: CI/CD Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "**"
@@ -87,30 +88,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build and tag images
-        env:
-          REGISTRY: localhost:5000
-          NAMESPACE: hng14-stage2-devops
-          TAG_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          for svc in api worker frontend; do
-            image="${REGISTRY}/${NAMESPACE}/${svc}"
-            docker build -t "${image}:${TAG_SHA}" -t "${image}:latest" "./${svc}"
-          done
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Push images to local registry service container
+      - name: Build and tag images
+        uses: docker/build-push-action@v6
         env:
           REGISTRY: localhost:5000
           NAMESPACE: hng14-stage2-devops
           TAG_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          for svc in api worker frontend; do
-            image="${REGISTRY}/${NAMESPACE}/${svc}"
-            docker push "${image}:${TAG_SHA}"
-            docker push "${image}:latest"
-          done
+        with:
+          context: ./api
+          tags: |
+            localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
+            localhost:5000/hng14-stage2-devops/api:latest
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and tag worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./worker
+          tags: |
+            localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
+            localhost:5000/hng14-stage2-devops/worker:latest
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and tag frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          tags: |
+            localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
+            localhost:5000/hng14-stage2-devops/frontend:latest
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Export image archives for downstream jobs
         env:
@@ -237,38 +253,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build and start stack
-        run: docker compose --env-file env.docker.example up -d --build
-
       - name: Run end-to-end integration test through frontend
+        env:
+          INTEGRATION_TIMEOUT_SECONDS: "120"
         run: |
-          set -euo pipefail
-          for _ in $(seq 1 60); do
-            if curl -fsS http://localhost:3000/ >/dev/null && curl -fsS http://localhost:8000/openapi.json >/dev/null; then
-              break
-            fi
-            sleep 2
-          done
-
-          curl -fsS http://localhost:3000/ >/dev/null
-          curl -fsS http://localhost:8000/openapi.json >/dev/null
-
-          submit_response="$(curl -sS -X POST http://localhost:3000/submit)"
-          echo "Submit response: ${submit_response}"
-          job_id="$(echo "${submit_response}" | python -c 'import json,sys; print(json.load(sys.stdin)["job_id"])')"
-
-          for _ in $(seq 1 30); do
-            status_response="$(curl -sS "http://localhost:3000/status/${job_id}")"
-            status="$(echo "${status_response}" | python -c 'import json,sys; print(json.load(sys.stdin).get("status",""))')"
-            echo "Current status: ${status}"
-            if [ "${status}" = "completed" ]; then
-              exit 0
-            fi
-            sleep 2
-          done
-
-          echo "Timed out waiting for completion"
-          exit 1
+          chmod +x scripts/integration_test.sh
+          ./scripts/integration_test.sh
 
       - name: Tear down stack
         if: always()
@@ -291,19 +281,28 @@ jobs:
 
       - name: Deploy with health-gated rolling update
         env:
-          IMAGE_BASE: localhost:5000/hng14-stage2-devops/frontend
+          IMAGE_BASE: ${{ vars.IMAGE_BASE }}
           TAG_SHA: ${{ github.sha }}
+          DEPLOY_API_URL: ${{ secrets.DEPLOY_API_URL }}
         run: |
           set -euo pipefail
+          if [ -z "${IMAGE_BASE}" ]; then
+            echo "IMAGE_BASE repository variable is required."
+            exit 1
+          fi
+          if [ -z "${DEPLOY_API_URL}" ]; then
+            echo "DEPLOY_API_URL secret is required."
+            exit 1
+          fi
           docker network create deploy-net >/dev/null 2>&1 || true
           docker rm -f frontend-old frontend-new >/dev/null 2>&1 || true
 
           docker run -d --name frontend-old --network deploy-net \
-            -e API_URL=http://api:8000 -e HOST=0.0.0.0 -e PORT=3000 \
+            -e API_URL="${DEPLOY_API_URL}" -e HOST=0.0.0.0 -e PORT=3000 \
             -p 3000:3000 "${IMAGE_BASE}:latest"
 
           docker run -d --name frontend-new --network deploy-net \
-            -e API_URL=http://api:8000 -e HOST=0.0.0.0 -e PORT=3000 \
+            -e API_URL="${DEPLOY_API_URL}" -e HOST=0.0.0.0 -e PORT=3000 \
             -p 3001:3000 "${IMAGE_BASE}:${TAG_SHA}"
 
           healthy="false"
@@ -326,6 +325,6 @@ jobs:
           docker rm -f frontend-old >/dev/null 2>&1
           docker rm -f frontend-new-prod >/dev/null 2>&1 || true
           docker run -d --name frontend-new-prod --network deploy-net \
-            -e API_URL=http://api:8000 -e HOST=0.0.0.0 -e PORT=3000 \
+            -e API_URL="${DEPLOY_API_URL}" -e HOST=0.0.0.0 -e PORT=3000 \
             -p 3000:3000 "${IMAGE_BASE}:${TAG_SHA}"
           echo "Rolling update completed successfully."

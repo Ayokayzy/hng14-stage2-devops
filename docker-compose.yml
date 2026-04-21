@@ -9,6 +9,7 @@ networks:
 services:
   redis:
     image: ${REDIS_IMAGE}
+    restart: unless-stopped
     networks:
       - internal
     healthcheck:
@@ -27,6 +28,7 @@ services:
     build:
       context: ${API_BUILD_CONTEXT}
       dockerfile: ${API_DOCKERFILE}
+    restart: unless-stopped
     networks:
       - internal
     environment:
@@ -48,6 +50,7 @@ services:
     build:
       context: ${WORKER_BUILD_CONTEXT}
       dockerfile: ${WORKER_DOCKERFILE}
+    restart: unless-stopped
     networks:
       - internal
     environment:
@@ -66,6 +69,7 @@ services:
     build:
       context: ${FRONTEND_BUILD_CONTEXT}
       dockerfile: ${FRONTEND_DOCKERFILE}
+    restart: unless-stopped
     networks:
       - internal
     environment:

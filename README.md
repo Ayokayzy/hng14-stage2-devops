@@ -120,6 +120,8 @@ The project includes a GitHub Actions workflow at `.github/workflows/ci-cd.yml` 
 
 If any stage fails, downstream stages are blocked by `needs`.
 
+For an engineering deep dive of every stage and command, see [CI_CD_WORKFLOW_EXPLAINED.md](CI_CD_WORKFLOW_EXPLAINED.md).
+
 ### Stage details
 
 - **Lint**
@@ -171,3 +173,15 @@ If any stage fails, downstream stages are blocked by `needs`.
 - `api-coverage-report`: contains `coverage.xml` from API unit tests.
 - `built-image-archives`: gzip-compressed Docker image archives used across build/scan/deploy jobs.
 - `trivy-sarif-reports`: SARIF scan reports for `api`, `worker`, and `frontend` images.
+
+### Required GitHub Actions configuration
+
+The deploy job expects the following repository-level settings:
+
+- **Variable:** `IMAGE_BASE`  
+  Docker image repository used for deploy promotion (for example: `ghcr.io/<owner>/hng14-stage2-devops/frontend`).
+
+- **Secret:** `DEPLOY_API_URL`  
+  Runtime API base URL injected into deployed frontend container (for example: `https://api.example.com`).
+
+If either value is missing, the deploy stage exits early with a clear error message.

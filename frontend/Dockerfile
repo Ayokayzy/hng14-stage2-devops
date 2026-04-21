@@ -13,11 +13,13 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOST=0.0.0.0
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --chown=node:node package.json app.js ./
-COPY --chown=node:node views ./views
+RUN useradd --create-home --shell /usr/sbin/nologin appuser
 
-USER node
+COPY --from=deps /app/node_modules ./node_modules
+COPY --chown=appuser:appuser package.json app.js ./
+COPY --chown=appuser:appuser views ./views
+
+USER appuser
 
 EXPOSE 3000
 
