@@ -150,6 +150,16 @@ jobs:
             gzip -dc "${archive}" | docker load
           done
 
+      - name: Trivy debug scan (table) for API image
+        uses: aquasecurity/trivy-action@v0.24.0
+        with:
+          scan-type: image
+          image-ref: localhost:5000/hng14-stage2-devops/api:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "0"
+
       - name: Run Trivy scan for API image
         uses: aquasecurity/trivy-action@v0.24.0
         with:
@@ -161,6 +171,16 @@ jobs:
           output: trivy-api.sarif
           exit-code: "1"
 
+      - name: Trivy debug scan (table) for Worker image
+        uses: aquasecurity/trivy-action@v0.24.0
+        with:
+          scan-type: image
+          image-ref: localhost:5000/hng14-stage2-devops/worker:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "0"
+
       - name: Run Trivy scan for Worker image
         uses: aquasecurity/trivy-action@v0.24.0
         with:
@@ -171,6 +191,16 @@ jobs:
           format: sarif
           output: trivy-worker.sarif
           exit-code: "1"
+
+      - name: Trivy debug scan (table) for Frontend image
+        uses: aquasecurity/trivy-action@v0.24.0
+        with:
+          scan-type: image
+          image-ref: localhost:5000/hng14-stage2-devops/frontend:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "0"
 
       - name: Run Trivy scan for Frontend image
         uses: aquasecurity/trivy-action@v0.24.0
