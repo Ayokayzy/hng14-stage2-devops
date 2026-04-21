@@ -243,6 +243,16 @@ jobs:
       - name: Run end-to-end integration test through frontend
         run: |
           set -euo pipefail
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/ >/dev/null && curl -fsS http://localhost:8000/openapi.json >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          curl -fsS http://localhost:3000/ >/dev/null
+          curl -fsS http://localhost:8000/openapi.json >/dev/null
+
           submit_response="$(curl -sS -X POST http://localhost:3000/submit)"
           echo "Submit response: ${submit_response}"
           job_id="$(echo "${submit_response}" | python -c 'import json,sys; print(json.load(sys.stdin)["job_id"])')"
