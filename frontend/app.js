@@ -1,9 +1,13 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config();
 const app = express();
 
-const API_URL = "http://localhost:8000";
+const API_URL = process.env.API_URL ?? "http://localhost:8000";
+const HOST = process.env.HOST ?? "0.0.0.0";
+const PORT = Number(process.env.PORT ?? 3000);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'views')));
@@ -26,6 +30,6 @@ app.get('/status/:id', async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('Frontend running on port 3000');
+app.listen(PORT, HOST, () => {
+  console.log(`Frontend listening on http://${HOST}:${PORT}`);
 });

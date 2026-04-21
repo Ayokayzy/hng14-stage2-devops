@@ -1,0 +1,84 @@
+# Load variable values from a project-root .env file (Compose substitution) or the shell.
+# See env.docker.example for required keys.
+
+networks:
+  internal:
+    name: ${COMPOSE_INTERNAL_NETWORK_NAME}
+    driver: ${COMPOSE_INTERNAL_NETWORK_DRIVER}
+
+services:
+  redis:
+    image: ${REDIS_IMAGE}
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: ${REDIS_HEALTHCHECK_INTERVAL}
+      timeout: ${REDIS_HEALTHCHECK_TIMEOUT}
+      start_period: ${REDIS_HEALTHCHECK_START_PERIOD}
+      retries: ${REDIS_HEALTHCHECK_RETRIES}
+    deploy:
+      resources:
+        limits:
+          cpus: ${REDIS_CPU_LIMIT}
+          memory: ${REDIS_MEMORY_LIMIT}
+
+  api:
+    build:
+      context: ${API_BUILD_CONTEXT}
+      dockerfile: ${API_DOCKERFILE}
+    networks:
+      - internal
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      UVICORN_PORT: ${API_CONTAINER_PORT}
+    ports:
+      - "${API_HOST_PORT_MAPPING}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: ${API_CPU_LIMIT}
+          memory: ${API_MEMORY_LIMIT}
+
+  worker:
+    build:
+      context: ${WORKER_BUILD_CONTEXT}
+      dockerfile: ${WORKER_DOCKERFILE}
+    networks:
+      - internal
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: ${WORKER_CPU_LIMIT}
+          memory: ${WORKER_MEMORY_LIMIT}
+
+  frontend:
+    build:
+      context: ${FRONTEND_BUILD_CONTEXT}
+      dockerfile: ${FRONTEND_DOCKERFILE}
+    networks:
+      - internal
+    environment:
+      API_URL: ${API_URL}
+      HOST: ${FRONTEND_LISTEN_HOST}
+      PORT: ${FRONTEND_CONTAINER_PORT}
+    ports:
+      - "${FRONTEND_HOST_PORT_MAPPING}"
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: ${FRONTEND_CPU_LIMIT}
+          memory: ${FRONTEND_MEMORY_LIMIT}
